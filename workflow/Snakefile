@@ -6,6 +6,7 @@ configfile: "workflow/config.yaml"
 
 import workflow_util as wu
 
+assert os.path.exists(config['gwas_table_path']), f"Data file doesn't exist: {config['gwas_table_path']}"
 GWAS_DF = wu.load_gwas_data(config['gwas_table_path'])
 
 rule all:
@@ -45,6 +46,7 @@ rule snv_fln_regions:
         snv = rules.snv_to_bed.output,
         genome = ancient("indexes/{genome}.chrom.sizes")
     output: "snp_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.bed"
+    log: "snp_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.bed.log"
     params:
         flnk_size_bp = lambda wildcards: int(wildcards.flnk_size_kbp) * 1000
     conda: "envs/downstream.yaml"

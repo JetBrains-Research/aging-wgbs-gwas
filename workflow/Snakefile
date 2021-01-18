@@ -1,0 +1,66 @@
+import os
+import pandas as id
+import numpy as np
+
+configfile: "workflow/config.yaml"
+
+import workflow_util as wu
+
+GWAS_DF = wu.load_gwas_data(config['gwas_table_path'])
+
+rule all:
+    input:
+        filtered_gwas_snv = lambda wildcards: rules.target.input
+
+rule download_bgz:
+    output: temp("bgz/{gwas_file_id}.tsv.bgz")
+    log: "bgz/{gwas_file_id}.tsv.bgz.log"
+    params:
+        cmd=lambda wildcards: GWAS_DF.loc[wildcards.gwas_file_id, 'wget command'].replace(
+            f'-O {wildcards.gwas_file_id}', f'-O bgz/{wildcards.gwas_file_id}'
+        )
+    shell:
+        "{params.cmd} --no-verbose >{log} 2>&1"
+
+rule filter_snv:
+    input: rules.download_bgz.output
+    output: "tsv/{gwas_file_id}.pval_{pval_thr}.tsv"
+    log: "tsv/{gwas_file_id}.pval_{pval_thr}.tsv.log"
+    conda: "envs/downstream.yaml"
+    shell:
+        'bgzip -dc {input} | awk \'function assert(cond, errormsg)'
+        '{{ if (!cond) {{ print "Assertion failed"; exit 1}} }}; '
+        '{{ if (NR == 1) {{ assert($NF == "pval") }}; if (NR == 1 || $NF < 0.00000005) print }}\''
+        ' > {output} 2>{log}'
+
+rule snv_to_bed:
+    input: rules.filter_snv.output
+    output: "bed/{gwas_file_id}.pval_{pval_thr}.snv.bed"
+    log: "bed/{gwas_file_id}.pval_{pval_thr}.snv.bed.log"
+    shell:
+        "awk -v FS=':' -v OFS='\t' '{{ if (NR != 1) print $1,$2,$2+1 }}' {input} > {output} 2>{log}"
+
+rule snv_fln_regions:
+    input:
+        snv = rules.snv_to_bed.output,
+        genome = ancient("indexes/{genome}.chrom.sizes")
+    output: "snp_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.bed"
+    params:
+        flnk_size_bp = lambda wildcards: int(wildcards.flnk_size_kbp) * 1000
+    conda: "envs/downstream.yaml"
+    shell:
+        "bedtools slop -b {params.flnk_size_bp} -i {input.snv} -g {input.genome} | sort -k1,1 -k2,2n | bedtools merge > {output}"
+
+rule target:
+    input:
+        expand(
+            [
+                str(rules.filter_snv.output),
+                str(rules.snv_to_bed.output),
+                str(rules.snv_fln_regions.output),
+            ],
+            pval_thr=config['gwas_snp_filter_pvalue_thr'],
+            gwas_file_id=GWAS_DF['gwas_file_id'],
+            flnk_size_kbp=[10, 50],
+            genome='hs37d5'
+        )

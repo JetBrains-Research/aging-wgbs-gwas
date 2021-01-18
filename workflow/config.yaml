@@ -1,0 +1,2 @@
+gwas_table_path: "UKBB GWAS Imputed v3 - File Manifest Release 20180731 - Manifest 201807.tsv"
+gwas_snp_filter_pvalue_thr: 0.00000005

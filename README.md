@@ -1,3 +1,7 @@
+# Clone repo
+
+Use `git clone git@aging-wgbs-gwas.git:JetBrains-Research/aging-wgbs-gwas.git` on comput server
+
 # Data
 
 From  http://www.nealelab.is/uk-biobank download [UKBB GWAS Imputed v3 table](https://docs.google.com/spreadsheets/d/1kvPoupSzsSFBNSztMzl04xMoSC3Kcx3CrjVf4yBmESU/edit?ts=5b5f17db#gid=178908679)

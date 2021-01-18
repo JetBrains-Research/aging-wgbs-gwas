@@ -9,6 +9,8 @@ import workflow_util as wu
 assert os.path.exists(config['gwas_table_path']), f"Data file doesn't exist: {config['gwas_table_path']}"
 GWAS_DF = wu.load_gwas_data(config['gwas_table_path'])
 
+localrules: all, target, snv_to_bed, snv_fln_regions
+
 rule all:
     input:
         filtered_gwas_snv = lambda wildcards: rules.target.input

@@ -67,10 +67,10 @@ __pycache__/
 .idea
 
 # project specific
-.snakemake
-bed
-bgz
-indexes
+.snakemake/
+bed/
+bgz/
+indexes/
 snp_flnk*
-tsv
-
+tsv/
+tmp/

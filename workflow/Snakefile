@@ -16,7 +16,6 @@ rule all:
         filtered_gwas_snv = lambda wildcards: rules.target.input
 
 rule download_bgz:
-    input: config['gwas_table_path']
     output: temp("bgz/{gwas_file_id}.tsv.bgz")
     log: "bgz/{gwas_file_id}.tsv.bgz.log"
     params:

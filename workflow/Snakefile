@@ -9,7 +9,7 @@ import workflow_util as wu
 assert os.path.exists(config['gwas_table_path']), f"Data file doesn't exist: {config['gwas_table_path']}"
 GWAS_DF = wu.load_gwas_data(config['gwas_table_path'])
 
-localrules: all, target, snv_to_bed, snv_fln_regions
+localrules: all, target, snv_to_bed, snv_merged_fln_regions
 
 rule all:
     input:
@@ -45,12 +45,12 @@ rule snv_to_bed:
     shell:
         "awk -v FS=':' -v OFS='\t' '{{ if (NR != 1) print $1,$2,$2+1 }}' {input} | uniq > {output} 2>{log}"
 
-rule snv_fln_regions:
+rule snv_merged_fln_regions:
     input:
         snv = rules.snv_to_bed.output,
         genome = ancient("indexes/{genome}.chrom.sizes")
-    output: "snp_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.bed"
-    log: "snp_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.bed.log"
+    output: "snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed"
+    log: "snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed.log"
     params:
         flnk_size_bp = lambda wildcards: int(wildcards.flnk_size_kbp) * 1000
     conda: "envs/downstream.yaml"
@@ -63,7 +63,8 @@ rule target:
             [
                 str(rules.filter_snv.output),
                 str(rules.snv_to_bed.output),
-                str(rules.snv_fln_regions.output),
+                # Optional:
+                str(rules.snv_merged_fln_regions.output),
             ],
             pval_thr=config['gwas_snp_filter_pvalue_thr'],
             gwas_file_id=GWAS_DF['gwas_file_id'],

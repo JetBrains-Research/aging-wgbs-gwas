@@ -55,8 +55,8 @@ rule filtered_snv_to_igv_gwas:
     log: "igv_track/{gwas_file_id}.pval_{pval_thr}.snv.gwas.log"
     # NB: snv file could have several alternatives for the same position
     shell:
-        # leave chr:pos:etc and pvalue fields:
-        "cat {input} | awk '{{ print $1\":\"$12}}' | awk -v FS=':' -v OFS='\t' '{{ if (NR==1) print \"chr\tpos\tsnp\tp\"; else print $1,$2,$1\":\"$2\":\"$3\":\"$4,$5} }}' | uniq > {output} 2>{log}"
+        # leave 1st (chr:pos:..) and last (pvalue) fields. Pvalue is always last one, could be 11-th or 12-th column
+        "cat {input} | awk '{{ print $1\":\"$NF}}' | awk -v FS=':' -v OFS='\t' '{{ if (NR==1) print \"chr\tpos\tsnp\tp\"; else print $1,$2,$1\":\"$2\":\"$3\":\"$4,$5} }}' | uniq > {output} 2>{log}"
 
 
 rule snv_merged_fln_regions:

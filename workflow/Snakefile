@@ -11,12 +11,15 @@ GWAS_DF = wu.load_gwas_data(config['gwas_table_path'])
 
 localrules: all, target, filtered_snv_to_bed, filtered_snv_to_igv_gwas, snv_merged_fln_regions
 
+# TODO: optional mode - start from 'tsv' folder
+
 rule all:
     input:
         filtered_gwas_snv = lambda wildcards: rules.target.input
 
 rule download_bgz:
-    output: temp("bgz/{gwas_file_id}.tsv.bgz")
+    #output: temp("bgz/{gwas_file_id}.tsv.bgz")
+    output: "bgz/{gwas_file_id}.tsv.bgz"
     log: "bgz/{gwas_file_id}.tsv.bgz.log"
     params:
         cmd=lambda wildcards: GWAS_DF.loc[wildcards.gwas_file_id, 'wget command'].replace(
@@ -76,6 +79,7 @@ rule target:
                 str(rules.filtered_snv_to_bed.output),
                 # Optional:
                 # str(rules.snv_merged_fln_regions.output),
+                str(rules.download_bgz.output) # GWAS data
             ],
             pval_thr=config['gwas_snp_filter_pvalue_thr'],
             gwas_file_id=GWAS_DF['gwas_file_id'],

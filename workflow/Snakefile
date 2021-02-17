@@ -9,7 +9,7 @@ import workflow_util as wu
 assert os.path.exists(config['gwas_table_path']), f"Data file doesn't exist: {config['gwas_table_path']}"
 GWAS_DF = wu.load_gwas_data(config['gwas_table_path'])
 
-localrules: all, target, snv_to_bed, snv_merged_fln_regions
+localrules: all, target, filtered_snv_to_bed, filtered_snv_to_igv_gwas, snv_merged_fln_regions
 
 rule all:
     input:
@@ -30,13 +30,14 @@ rule filter_snv:
     output: "tsv/{gwas_file_id}.pval_{pval_thr}.tsv"
     log: "tsv/{gwas_file_id}.pval_{pval_thr}.tsv.log"
     conda: "envs/downstream.yaml"
+    # pvalue could be also 'NaN', it is processed ok, filtered out by pvalue filter
     shell:
         'bgzip -dc {input} | awk \'function assert(cond, errormsg)'
         '{{ if (!cond) {{ print "Assertion failed"; exit 1}} }}; '
         '{{ if (NR == 1) {{ assert($NF == "pval") }}; if (NR == 1 || $NF < 0.00000005) print }}\''
         ' > {output} 2>{log}'
 
-rule snv_to_bed:
+rule filtered_snv_to_bed:
     input: rules.filter_snv.output
     output: "bed/{gwas_file_id}.pval_{pval_thr}.snv.bed"
     log: "bed/{gwas_file_id}.pval_{pval_thr}.snv.bed.log"
@@ -45,9 +46,19 @@ rule snv_to_bed:
     shell:
         "awk -v FS=':' -v OFS='\t' '{{ if (NR != 1) print $1,$2,$2+1 }}' {input} | uniq > {output} 2>{log}"
 
+rule filtered_snv_to_igv_gwas:
+    input: rules.filter_snv.output
+    output: "igv_track/{gwas_file_id}.pval_{pval_thr}.snv.gwas"
+    log: "igv_track/{gwas_file_id}.pval_{pval_thr}.snv.gwas.log"
+    # NB: snv file could have several alternatives for the same position
+    shell:
+        # leave chr:pos:etc and pvalue fields:
+        "cat {input} | awk '{{ print $1\":\"$12}}' | awk -v FS=':' -v OFS='\t' '{{ if (NR==1) print \"chr\tpos\tsnp\tp\"; else print $1,$2,$1\":\"$2\":\"$3\":\"$4,$5} }}' | uniq > {output} 2>{log}"
+
+
 rule snv_merged_fln_regions:
     input:
-        snv = rules.snv_to_bed.output,
+        snv = rules.filtered_snv_to_bed.output,
         genome = ancient("indexes/{genome}.chrom.sizes")
     output: "snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed"
     log: "snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed.log"
@@ -62,12 +73,15 @@ rule target:
         expand(
             [
                 str(rules.filter_snv.output),
-                str(rules.snv_to_bed.output),
+                str(rules.filtered_snv_to_bed.output),
                 # Optional:
-                str(rules.snv_merged_fln_regions.output),
+                # str(rules.snv_merged_fln_regions.output),
             ],
             pval_thr=config['gwas_snp_filter_pvalue_thr'],
             gwas_file_id=GWAS_DF['gwas_file_id'],
-            flnk_size_kbp=[10, 50],
+            #flnk_size_kbp=[10, 50],
             genome='hs37d5'
         )
+
+# export PIPELINE_WORKDIR=/scratch1/fs1/martyomov/rcherniatchik/aging_downstream/aging-wgbs-gwas; export PIPELINE_DOCKER_IMG=biolabs/snakemake:5.30.1_conda4.9.2_py37; export PIPELINE_LOG=$PIPELINE_WORKDIR/tmp_down.2.log; bsub -cwd $HOME -n 10 -G compute-martyomov -q general -oo $PIPELINE_LOG -R 'select[mem>50000] rusage[mem=50000] span[hosts=1]' -a "docker($PIPELINE_DOCKER_IMG)" /bin/bash  -c "source /etc/bash.bashrc; cd $PIPELINE_WORKDIR; export TMPDIR=$PIPELINE_WORKDIR/tmp; conda activate /scratch1/fs1/martyomov/rcherniatchik/conda_envs/bioinf && java -Xmx46g -jar tools/bioinf-commons-0.0.11.jar enrichmentInRegions -l rrbs_dmrs.hg19.down.bed -b rrbs_covered_regions_flnk_50bp.fixed.bed --cs  hg19.conventional.chrom.sizes  --parallelism 10 -r bed_clean -s 1000000 --chunk-size 100000 -o tmp_down_  --a-regions --a-flanked 50000  --h1 greater"
+

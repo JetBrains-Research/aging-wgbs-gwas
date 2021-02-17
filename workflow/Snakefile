@@ -22,11 +22,11 @@ rule download_bgz:
     output: "bgz/{gwas_file_id}.tsv.bgz"
     log: "bgz/{gwas_file_id}.tsv.bgz.log"
     params:
-        cmd=lambda wildcards: GWAS_DF.loc[wildcards.gwas_file_id, 'wget command'].replace(
+        wget_cmd=lambda wildcards: GWAS_DF.loc[wildcards.gwas_file_id, 'wget command'].replace(
             f'-O {wildcards.gwas_file_id}', f'-O bgz/{wildcards.gwas_file_id}'
         )
     shell:
-        "{params.cmd} --no-verbose >{log} 2>&1"
+        "{params.wget_cmd} --no-verbose >{log} 2>&1"
 
 rule filter_snv:
     input: rules.download_bgz.output

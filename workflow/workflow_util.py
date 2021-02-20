@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 def load_gwas_data(path):
     df = pd.read_csv(path, sep="\t")
     gwas_file_id = []

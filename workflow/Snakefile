@@ -77,6 +77,7 @@ rule target:
             [
                 str(rules.filter_snv.output),
                 str(rules.filtered_snv_to_bed.output),
+                str(rules.filtered_snv_to_igv_gwas.output),
                 # Optional:
                 # str(rules.snv_merged_fln_regions.output),
                 str(rules.download_bgz.output) # GWAS data

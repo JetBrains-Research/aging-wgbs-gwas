@@ -1,6 +1,4 @@
 import os
-import pandas as id
-import numpy as np
 import workflow_util as wu
 
 localrules: all, target, filtered_snv_to_bed, filtered_snv_to_igv_gwas, snv_merged_fln_regions
@@ -15,7 +13,7 @@ if gwas_filtered_list_path:
     assert os.path.exists(gwas_filtered_list_path), f"GWAS list file doesn't exist: {gwas_filtered_list_path}"
     data_sets = []
     with open(gwas_filtered_list_path) as f:
-        data_sets = [s.strip().replace("filtered_tsv/", "").replace(".pval_5e-08.tsv", ".tsv.bgz") for s in f.readlines()]
+        data_sets = [s.strip().replace("filtered_tsv/", "").replace(".pval_5e-08.tsv", "") for s in f.readlines()]
     assert data_sets, f"No files were found, seems the list is empty: {gwas_filtered_list_path}"
     print(f"Leaving {len(data_sets)} of {len(GWAS_DF)} GWAS datasets according to list: {gwas_filtered_list_path}")
     GWAS_DF = GWAS_DF.loc[data_sets, :]

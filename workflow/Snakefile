@@ -18,6 +18,7 @@ rule all:
         filtered_gwas_snv = lambda wildcards: rules.target.input
 
 rule download_bgz:
+    # XXX All *.bgz could be more than 5 TB, maybe is better to make them temporary
     #output: temp("bgz/{gwas_file_id}.tsv.bgz")
     output: "bgz/{gwas_file_id}.tsv.bgz"
     log: "bgz/{gwas_file_id}.tsv.bgz.log"
@@ -30,8 +31,8 @@ rule download_bgz:
 
 rule filter_snv:
     input: rules.download_bgz.output
-    output: "tsv/{gwas_file_id}.pval_{pval_thr}.tsv"
-    log: "tsv/{gwas_file_id}.pval_{pval_thr}.tsv.log"
+    output: "filtered_tsv/{gwas_file_id}.pval_{pval_thr}.tsv"
+    log: "filtered_tsv/{gwas_file_id}.pval_{pval_thr}.tsv.log"
     conda: "envs/downstream.yaml"
     # pvalue could be also 'NaN', it is processed ok, filtered out by pvalue filter
     shell:
@@ -42,8 +43,8 @@ rule filter_snv:
 
 rule filtered_snv_to_bed:
     input: rules.filter_snv.output
-    output: "bed/{gwas_file_id}.pval_{pval_thr}.snv.bed"
-    log: "bed/{gwas_file_id}.pval_{pval_thr}.snv.bed.log"
+    output: "filtered_bed/{gwas_file_id}.pval_{pval_thr}.snv.bed"
+    log: "filtered_bed/{gwas_file_id}.pval_{pval_thr}.snv.bed.log"
     # snv file could have several alternatives for the same position, here we need to count it only once
     # => apply 'uniq'
     shell:
@@ -51,8 +52,8 @@ rule filtered_snv_to_bed:
 
 rule filtered_snv_to_igv_gwas:
     input: rules.filter_snv.output
-    output: "igv_track/{gwas_file_id}.pval_{pval_thr}.snv.gwas"
-    log: "igv_track/{gwas_file_id}.pval_{pval_thr}.snv.gwas.log"
+    output: "filtered_igv_track/{gwas_file_id}.pval_{pval_thr}.snv.gwas"
+    log: "filtered_igv_track/{gwas_file_id}.pval_{pval_thr}.snv.gwas.log"
     # NB: snv file could have several alternatives for the same position
     shell:
         # leave 1st (chr:pos:..) and last (pvalue) fields. Pvalue is always last one, could be 11-th or 12-th column
@@ -63,8 +64,8 @@ rule snv_merged_fln_regions:
     input:
         snv = rules.filtered_snv_to_bed.output,
         genome = ancient("indexes/{genome}.chrom.sizes")
-    output: "snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed"
-    log: "snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed.log"
+    output: "filtered_snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed"
+    log: "filtered_snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed.log"
     params:
         flnk_size_bp = lambda wildcards: int(wildcards.flnk_size_kbp) * 1000
     conda: "envs/downstream.yaml"

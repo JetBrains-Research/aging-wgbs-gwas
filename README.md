@@ -94,7 +94,7 @@ export PIPELINE_DOCKER_IMG='biolabs/snakemake:5.30.1_conda4.9.2_py37'
 PIPELINE_SRC=...
 PIPELINE_WORKDIR=$PIPELINE_SRC
 
-export PIPELINE_LOG=$PIPELINE_WORKDIR/submission_01.log; LOCAL_CORES=4; LSF_DOCKER_ENV_FILE=~/docker_containers_envs/$(basename $PIPELINE_WORKDIR).env; bsub -cwd $HOME -n $LOCAL_CORES -G compute-martyomov -q general -oo $PIPELINE_LOG -R 'span[hosts=1]'  -a "docker($PIPELINE_DOCKER_IMG)" /bin/bash  -c "source /etc/bash.bashrc; cd $PIPELINE_WORKDIR; export TMPDIR=$PIPELINE_WORKDIR/tmp; snakemake -pr --use-conda --profile lsf_wgbs --jobscript ~/.config/snakemake/lsf_wgbs/lsf-jobscript.sh --local-cores $LOCAL_CORES --latency-wait 15 --restart-times 1 --jobs 200 --keep-going --dry-run"
+export PIPELINE_LOG=$PIPELINE_WORKDIR/submission_01.log; LOCAL_CORES=10; LSF_DOCKER_ENV_FILE=~/docker_containers_envs/$(basename $PIPELINE_WORKDIR).env; bsub -cwd $HOME -n $LOCAL_CORES -G compute-martyomov -q general -oo $PIPELINE_LOG -R 'span[hosts=1]'  -a "docker($PIPELINE_DOCKER_IMG)" /bin/bash  -c "source /etc/bash.bashrc; cd $PIPELINE_WORKDIR; export TMPDIR=$PIPELINE_WORKDIR/tmp; snakemake -pr --use-conda --profile lsf_wgbs --jobscript ~/.config/snakemake/lsf_wgbs/lsf-jobscript.sh --local-cores $LOCAL_CORES --latency-wait 15 --restart-times 1 --jobs 200 --keep-going --dry-run"
 
 tail -f $PIPELINE_LOG  | grep -e "steps" -e "Error" -e "Finished" -e "Submitted" -e "exited" -e "job summary" -e "usage summary" -e "DAG" -e "Exception" -e "Traceback"
 ```

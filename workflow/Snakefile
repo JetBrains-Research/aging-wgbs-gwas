@@ -1,7 +1,7 @@
 import os
 import workflow_util as wu
 
-localrules: all, target, filtered_snv_to_bed, filtered_snv_to_igv_gwas, snv_merged_fln_regions
+localrules: all, target, filtered_snv_to_bed, filtered_snv_to_igv_gwas
 
 configfile: "workflow/config.yaml"
 

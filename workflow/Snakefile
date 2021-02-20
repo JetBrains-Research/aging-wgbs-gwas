@@ -65,18 +65,6 @@ rule filtered_snv_to_igv_gwas:
         "cat {input} | awk '{{ print $1\":\"$NF}}' | awk -v FS=':' -v OFS='\t' '{{ if ($5 == 0.0) {{ $5=1e-300 }}; if (NR==1) print \"chr\tpos\tsnp\tp\"; else print $1,$2,$1\":\"$2\":\"$3\":\"$4,$5} }}' | uniq > {output} 2>{log}"
 
 
-rule snv_merged_fln_regions:
-    input:
-        snv = rules.filtered_snv_to_bed.output,
-        genome = ancient("indexes/{genome}.chrom.sizes")
-    output: "filtered_snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed"
-    log: "filtered_snp_merged_flnk_{flnk_size_kbp}k_area_{genome}/{gwas_file_id}.pval_{pval_thr}.flnk_{flnk_size_kbp}k.merged.bed.log"
-    params:
-        flnk_size_bp = lambda wildcards: int(wildcards.flnk_size_kbp) * 1000
-    conda: "envs/downstream.yaml"
-    shell:
-        "bedtools slop -b {params.flnk_size_bp} -i {input.snv} -g {input.genome} | sort -k1,1 -k2,2n | bedtools merge > {output}"
-
 rule target:
     input:
         expand(
@@ -84,14 +72,12 @@ rule target:
                 str(rules.filter_snv.output),
                 str(rules.filtered_snv_to_bed.output),
                 str(rules.filtered_snv_to_igv_gwas.output),
-                # Optional:
-                # str(rules.snv_merged_fln_regions.output),
 
+                # Optional:
                 *([] if gwas_filtered_list_path else str(rules.download_bgz.output))  # optional GWAS raw data
             ],
             pval_thr=config['gwas_snp_filter_pvalue_thr'],
             gwas_file_id=GWAS_DF['gwas_file_id'],
-            #flnk_size_kbp=[10, 50],
             genome='hs37d5'
         )
 

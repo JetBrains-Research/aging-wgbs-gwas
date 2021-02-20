@@ -62,7 +62,7 @@ rule filtered_snv_to_igv_gwas:
     # NB: snv file could have several alternatives for the same position
     shell:
         # leave 1st (chr:pos:..) and last (pvalue) fields. Pvalue is always last one, could be 11-th or 12-th column
-        "cat {input} | awk '{{ print $1\":\"$NF}}' | awk -v FS=':' -v OFS='\t' '{{ if ($5 == 0.0) {{ $5=1e-300 }}; if (NR==1) print \"chr\tpos\tsnp\tp\"; else print $1,$2,$1\":\"$2\":\"$3\":\"$4,$5} }}' | uniq > {output} 2>{log}"
+        "cat {input} | awk '{{ print $1\":\"$NF}}' | awk -v FS=':' -v OFS='\t' '{{ if ($5 == 0.0) {{ $5=1e-300 }}; if (NR==1) print \"chr\tpos\tsnp\tp\"; else print $1,$2,$1\":\"$2\":\"$3\":\"$4,$5}} }}' | uniq > {output} 2>{log}"
 
 
 rule target:

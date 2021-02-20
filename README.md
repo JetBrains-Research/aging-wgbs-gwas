@@ -98,3 +98,7 @@ export PIPELINE_LOG=$PIPELINE_WORKDIR/submission_01.log; LOCAL_CORES=4; LSF_DOCK
 
 tail -f $PIPELINE_LOG  | grep -e "steps" -e "Error" -e "Finished" -e "Submitted" -e "exited" -e "job summary" -e "usage summary" -e "DAG" -e "Exception" -e "Traceback"
 ```
+
+Not all GWAS could be downloaded, in order to rerun and skip downloading step:
+* Create GWAS list file: `find filtered_tsv -name '*.tsv' > filtered_tsv.list`
+* Rerun snakemake command with additional argument `--config gwas_filtered_list_path='filtered_tsv.list'` 

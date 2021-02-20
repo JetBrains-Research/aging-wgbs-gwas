@@ -1,17 +1,24 @@
 import os
 import pandas as id
 import numpy as np
+import workflow_util as wu
+
+localrules: all, target, filtered_snv_to_bed, filtered_snv_to_igv_gwas, snv_merged_fln_regions
 
 configfile: "workflow/config.yaml"
-
-import workflow_util as wu
 
 assert os.path.exists(config['gwas_table_path']), f"Data file doesn't exist: {config['gwas_table_path']}"
 GWAS_DF = wu.load_gwas_data(config['gwas_table_path'])
 
-localrules: all, target, filtered_snv_to_bed, filtered_snv_to_igv_gwas, snv_merged_fln_regions
-
-# TODO: optional mode - start from 'tsv' folder
+gwas_filtered_list_path = config['gwas_filtered_list_path'] # generate using: `find filtered_tsv -name '*.tsv' > filtered_tsv.list`
+if gwas_filtered_list_path:
+    assert os.path.exists(gwas_filtered_list_path), f"GWAS list file doesn't exist: {gwas_filtered_list_path}"
+    data_sets = []
+    with open(gwas_filtered_list_path) as f:
+        data_sets = [s.strip().replace("filtered_tsv/", "").replace(".pval_5e-08.tsv", ".tsv.bgz") for s in f.readlines()]
+    assert data_sets, f"No files were found, seems the list is empty: {gwas_filtered_list_path}"
+    print(f"Leaving {len(data_sets)} of {len(GWAS_DF)} GWAS datasets according to list: {gwas_filtered_list_path}")
+    GWAS_DF = GWAS_DF.loc[data_sets, :]
 
 rule all:
     input:
@@ -81,7 +88,8 @@ rule target:
                 str(rules.filtered_snv_to_igv_gwas.output),
                 # Optional:
                 # str(rules.snv_merged_fln_regions.output),
-                str(rules.download_bgz.output) # GWAS data
+
+                *([] if gwas_filtered_list_path else str(rules.download_bgz.output))  # optional GWAS raw data
             ],
             pval_thr=config['gwas_snp_filter_pvalue_thr'],
             gwas_file_id=GWAS_DF['gwas_file_id'],
@@ -89,5 +97,7 @@ rule target:
             genome='hs37d5'
         )
 
-# export PIPELINE_WORKDIR=/scratch1/fs1/martyomov/rcherniatchik/aging_downstream/aging-wgbs-gwas; export PIPELINE_DOCKER_IMG=biolabs/snakemake:5.30.1_conda4.9.2_py37; export PIPELINE_LOG=$PIPELINE_WORKDIR/tmp_down.2.log; bsub -cwd $HOME -n 10 -G compute-martyomov -q general -oo $PIPELINE_LOG -R 'select[mem>50000] rusage[mem=50000] span[hosts=1]' -a "docker($PIPELINE_DOCKER_IMG)" /bin/bash  -c "source /etc/bash.bashrc; cd $PIPELINE_WORKDIR; export TMPDIR=$PIPELINE_WORKDIR/tmp; conda activate /scratch1/fs1/martyomov/rcherniatchik/conda_envs/bioinf && java -Xmx46g -jar tools/bioinf-commons-0.0.11.jar enrichmentInRegions -l rrbs_dmrs.hg19.down.bed -b rrbs_covered_regions_flnk_50bp.fixed.bed --cs  hg19.conventional.chrom.sizes  --parallelism 10 -r bed_clean -s 1000000 --chunk-size 100000 -o tmp_down_  --a-regions --a-flanked 50000  --h1 greater"
+# TODO 1: gwas enrichment at dmrs
+# TODO 2: influencing dmrs
+
 

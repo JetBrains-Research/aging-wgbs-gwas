@@ -1,3 +1,7 @@
+# Status: Archived 
+
+No longer maintained
+
 # Clone repo
 
 Use `git clone git@aging-wgbs-gwas.git:JetBrains-Research/aging-wgbs-gwas.git` on comput server
